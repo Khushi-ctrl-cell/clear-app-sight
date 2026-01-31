@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
-import { Sparkles, Lock, Eye, EyeOff, Smartphone, AlertCircle } from 'lucide-react';
+import { Sparkles, Lock, Eye, EyeOff, Smartphone, AlertCircle, Check } from 'lucide-react';
 import { AppData } from '@/data/mockApps';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { useState } from 'react';
 
 interface SmartRecommendationsProps {
   apps: AppData[];
@@ -15,9 +17,39 @@ interface Recommendation {
   impact: 'high' | 'medium' | 'low';
   action: string;
   affectedApps: string[];
+  actionType: 'revoke' | 'review' | 'enable' | 'cleanup';
 }
 
 const SmartRecommendations = ({ apps }: SmartRecommendationsProps) => {
+  const [completedActions, setCompletedActions] = useState<string[]>([]);
+
+  const handleAction = (rec: Recommendation) => {
+    setCompletedActions(prev => [...prev, rec.id]);
+    
+    switch (rec.actionType) {
+      case 'revoke':
+        toast.success('Permissions revoked!', {
+          description: `Background ${rec.id === 'bg-location' ? 'location' : 'microphone'} access has been disabled for ${rec.affectedApps.length} app(s).`,
+        });
+        break;
+      case 'review':
+        toast.info('Opening app review...', {
+          description: 'Navigate to the Apps tab to review high-risk applications.',
+        });
+        break;
+      case 'cleanup':
+        toast.success('Permissions cleaned up!', {
+          description: `Removed ${rec.affectedApps.length} unused permissions from your apps.`,
+        });
+        break;
+      case 'enable':
+        toast.success('Notifications enabled!', {
+          description: 'You will now be notified when apps access sensitive data.',
+        });
+        break;
+    }
+  };
+
   const generateRecommendations = (): Recommendation[] => {
     const recommendations: Recommendation[] = [];
 
@@ -34,6 +66,7 @@ const SmartRecommendations = ({ apps }: SmartRecommendationsProps) => {
         impact: 'high',
         action: 'Fix Now',
         affectedApps: bgLocationApps.map((a) => a.icon),
+        actionType: 'revoke',
       });
     }
 
@@ -50,6 +83,7 @@ const SmartRecommendations = ({ apps }: SmartRecommendationsProps) => {
         impact: 'high',
         action: 'Revoke Access',
         affectedApps: bgMicApps.map((a) => a.icon),
+        actionType: 'revoke',
       });
     }
 
@@ -64,6 +98,7 @@ const SmartRecommendations = ({ apps }: SmartRecommendationsProps) => {
         impact: 'high',
         action: 'Review Apps',
         affectedApps: highRiskApps.map((a) => a.icon),
+        actionType: 'review',
       });
     }
 
@@ -80,6 +115,7 @@ const SmartRecommendations = ({ apps }: SmartRecommendationsProps) => {
         impact: 'medium',
         action: 'Clean Up',
         affectedApps: unusedPerms.slice(0, 4).map((a) => a.icon),
+        actionType: 'cleanup',
       });
     }
 
@@ -92,6 +128,7 @@ const SmartRecommendations = ({ apps }: SmartRecommendationsProps) => {
       impact: 'low',
       action: 'Enable',
       affectedApps: [],
+      actionType: 'enable',
     });
 
     return recommendations;
@@ -148,8 +185,21 @@ const SmartRecommendations = ({ apps }: SmartRecommendationsProps) => {
                       ))}
                     </div>
                   )}
-                  <Button size="sm" className="ml-auto">
-                    {rec.action}
+                  <Button 
+                    size="sm" 
+                    className="ml-auto"
+                    onClick={() => handleAction(rec)}
+                    disabled={completedActions.includes(rec.id)}
+                    variant={completedActions.includes(rec.id) ? 'secondary' : 'default'}
+                  >
+                    {completedActions.includes(rec.id) ? (
+                      <>
+                        <Check className="w-4 h-4 mr-1" />
+                        Done
+                      </>
+                    ) : (
+                      rec.action
+                    )}
                   </Button>
                 </div>
               </div>
