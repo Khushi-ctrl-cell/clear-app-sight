@@ -45,7 +45,7 @@ const Index = () => {
         <QuickStats apps={mockApps} />
       </div>
 
-      <PrivacyAlerts apps={mockApps} />
+      <PrivacyAlerts apps={mockApps} onAppSelect={setSelectedApp} />
 
       {/* Quick App List */}
       <div>
@@ -101,7 +101,7 @@ const Index = () => {
       case 'apps':
         return renderApps();
       case 'alerts':
-        return <PrivacyAlerts apps={mockApps} />;
+        return <PrivacyAlerts apps={mockApps} onAppSelect={setSelectedApp} />;
       case 'recommendations':
         return <SmartRecommendations apps={mockApps} />;
       default:
@@ -109,9 +109,12 @@ const Index = () => {
     }
   };
 
+  const alertCount = mockApps.filter(app => app.riskScore >= 8).length + 
+    mockApps.filter(app => app.permissions.some(p => p.backgroundAccess && p.accessCount > 500)).length;
+
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header onAlertClick={() => setActiveTab('alerts')} alertCount={alertCount} />
 
       <main className="container mx-auto px-4 py-6 pb-24">
         <div className="mb-6">

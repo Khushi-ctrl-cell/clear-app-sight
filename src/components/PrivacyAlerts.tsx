@@ -3,22 +3,25 @@ import { AlertTriangle, Bell, Shield, X } from 'lucide-react';
 import { AppData } from '@/data/mockApps';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface PrivacyAlertsProps {
   apps: AppData[];
+  onAppSelect?: (app: AppData) => void;
 }
 
 interface Alert {
   id: string;
   appName: string;
   appIcon: string;
+  appId: string;
   severity: 'high' | 'medium' | 'low';
   title: string;
   description: string;
   action: string;
 }
 
-const PrivacyAlerts = ({ apps }: PrivacyAlertsProps) => {
+const PrivacyAlerts = ({ apps, onAppSelect }: PrivacyAlertsProps) => {
   const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
 
   // Generate alerts from app data
@@ -31,6 +34,7 @@ const PrivacyAlerts = ({ apps }: PrivacyAlertsProps) => {
           id: `${app.id}-critical`,
           appName: app.name,
           appIcon: app.icon,
+          appId: app.id,
           severity: 'high',
           title: `Critical Privacy Risk Detected`,
           description: `${app.name} has an extremely high risk score (${app.riskScore}/10). ${app.suspiciousBehaviors[0] || 'Multiple permissions are being misused.'}`,
@@ -44,6 +48,7 @@ const PrivacyAlerts = ({ apps }: PrivacyAlertsProps) => {
             id: `${app.id}-${perm.type}-bg`,
             appName: app.name,
             appIcon: app.icon,
+            appId: app.id,
             severity: 'high',
             title: `${perm.type.charAt(0).toUpperCase() + perm.type.slice(1)} accessed ${perm.accessCount.toLocaleString()} times`,
             description: `${app.name} is accessing your ${perm.type} in the background excessively. This may drain battery and compromise privacy.`,
@@ -62,6 +67,7 @@ const PrivacyAlerts = ({ apps }: PrivacyAlertsProps) => {
           id: `${app.id}-night`,
           appName: app.name,
           appIcon: app.icon,
+          appId: app.id,
           severity: 'medium',
           title: 'Unusual nighttime activity',
           description: `${app.name} accessed your data ${nightActivity} times between 1 AM - 5 AM. This could indicate background data collection.`,
@@ -71,6 +77,16 @@ const PrivacyAlerts = ({ apps }: PrivacyAlertsProps) => {
     });
 
     return alerts.filter((alert) => !dismissedAlerts.includes(alert.id));
+  };
+
+  const handleAction = (alert: Alert) => {
+    const app = apps.find(a => a.id === alert.appId);
+    if (app && onAppSelect) {
+      onAppSelect(app);
+    }
+    toast.success(`Opening ${alert.appName} details`, {
+      description: 'Review and manage permissions for this app',
+    });
   };
 
   const alerts = generateAlerts();
@@ -145,13 +161,22 @@ const PrivacyAlerts = ({ apps }: PrivacyAlertsProps) => {
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">{alert.description}</p>
                 <div className="flex items-center gap-2">
-                  <Button size="sm" variant="default">
+                  <Button 
+                    size="sm" 
+                    variant="default"
+                    onClick={() => handleAction(alert)}
+                  >
                     {alert.action}
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => dismissAlert(alert.id)}
+                    onClick={() => {
+                      dismissAlert(alert.id);
+                      toast.info('Alert dismissed', {
+                        description: `You can still find ${alert.appName} in the Apps tab`,
+                      });
+                    }}
                   >
                     Dismiss
                   </Button>
